@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
       inputs:
         package_name:
-          description: "Package name of the game:"
-          required: true
+        #  description: "Package name of the game:"
+        #  required: true
 
 jobs:
   build:
