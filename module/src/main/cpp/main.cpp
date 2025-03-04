@@ -6,13 +6,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cinttypes>
-#include <fstream>     // <--- Thêm để đọc file
-#include <string>      // <--- Thêm để xử lý chuỗi
+#include <fstream>
+#include <string>
 #include "hack.h"
 #include "zygisk.hpp"
 #include "log.h"
 
-// Hàm đọc tên package từ file game_package.txt
 std::string getPackageNameFromFile() {
     const char *filePath = "/data/local/tmp/game_package.txt";
     std::ifstream file(filePath);
@@ -21,10 +20,10 @@ std::string getPackageNameFromFile() {
     if (file.is_open()) {
         std::getline(file, packageName);
         file.close();
+        packageName.erase(packageName.find_last_not_of(" \n\r\t") + 1);
         return packageName;
     }
 
-    // Nếu file không tồn tại hoặc đọc lỗi, trả về chuỗi rỗng
     return "";
 }
 
@@ -70,9 +69,10 @@ private:
             return;
         }
 
-        const char *targetPackageName = filePackageName.c_str();
+        LOGI("Package thực tế từ Zygisk: %s", package_name);
+        LOGI("Package từ game_package.txt: %s", filePackageName.c_str());
 
-        if (strcmp(package_name, targetPackageName) == 0) {
+        if (strcmp(package_name, filePackageName.c_str()) == 0) {
             LOGI("Detect game: %s", package_name);
             enable_hack = true;
 
@@ -99,6 +99,7 @@ private:
             }
 #endif
         } else {
+            LOGW("Package không khớp, bỏ qua. (Expect: %s - Actual: %s)", filePackageName.c_str(), package_name);
             api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
         }
     }
