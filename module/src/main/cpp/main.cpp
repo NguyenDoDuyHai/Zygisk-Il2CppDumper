@@ -6,10 +6,27 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cinttypes>
+#include <fstream>     // <--- Thêm để đọc file
+#include <string>      // <--- Thêm để xử lý chuỗi
 #include "hack.h"
 #include "zygisk.hpp"
-#include "game.h"
 #include "log.h"
+
+// Hàm đọc tên package từ file game_package.txt
+std::string getPackageNameFromFile() {
+    const char *filePath = "/data/local/tmp/game_package.txt";
+    std::ifstream file(filePath);
+    std::string packageName;
+
+    if (file.is_open()) {
+        std::getline(file, packageName);
+        file.close();
+        return packageName;
+    }
+
+    // Nếu file không tồn tại hoặc đọc lỗi, trả về chuỗi rỗng
+    return "";
+}
 
 using zygisk::Api;
 using zygisk::AppSpecializeArgs;
@@ -40,15 +57,25 @@ public:
 private:
     Api *api;
     JNIEnv *env;
-    bool enable_hack;
-    char *game_data_dir;
-    void *data;
-    size_t length;
+    bool enable_hack = false;
+    char *game_data_dir = nullptr;
+    void *data = nullptr;
+    size_t length = 0;
 
     void preSpecialize(const char *package_name, const char *app_data_dir) {
-        if (strcmp(package_name, GamePackageName) == 0) {
-            LOGI("detect game: %s", package_name);
+        std::string filePackageName = getPackageNameFromFile();
+        if (filePackageName.empty()) {
+            LOGW("Không đọc được package name từ game_package.txt");
+            api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
+            return;
+        }
+
+        const char *targetPackageName = filePackageName.c_str();
+
+        if (strcmp(package_name, targetPackageName) == 0) {
+            LOGI("Detect game: %s", package_name);
             enable_hack = true;
+
             game_data_dir = new char[strlen(app_data_dir) + 1];
             strcpy(game_data_dir, app_data_dir);
 
